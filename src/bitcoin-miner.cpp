@@ -99,7 +99,9 @@ public:
             .addArg("nblocks=<n>", ::AllowedArgs::requiredInt,
                 _("Number of blocks to mine (default: mine forever / -1). Value must be an integer"))
             .addArg("coinbasesize=<n>", ::AllowedArgs::requiredInt,
-                _("Get a fixed size coinbase Tx (default: do not use / 0). Value must be an integer"));
+                _("Get a fixed size coinbase Tx (default: do not use / 0). Value must be an integer"))
+            .addArg("maxdifficulty=<f>", ::AllowedArgs::requiredAmount,  // required Amount validates a float, basically
+                _("Set the maximum difficulty (float) we will mine. If difficulty exceeds this value we sleep and poll every <duration> seconds until difficulty drops below this threshold. Default: infinity"));
     }
 };
 
@@ -238,6 +240,7 @@ static UniValue CpuMineBlock(unsigned int searchDuration, const UniValue &params
     std::vector<uint256> merkleproof;
     CBlockHeader header;
     vector<unsigned char> coinbaseBytes(ParseHex(params["coinbase"].get_str()));
+    const double maxdiff = GetDoubleArg("-maxdifficulty", 0.0);
 
     found = false;
 
@@ -265,8 +268,17 @@ static UniValue CpuMineBlock(unsigned int searchDuration, const UniValue &params
 
     uint32_t startNonce = header.nNonce = randFunc();
 
+    const double difficulty = GetDifficulty(header.nBits);
+
+    if (maxdiff > 0.0 && difficulty > maxdiff) {
+        printf("Currenty difficulty: %3.2f > maxdifficulty: %3.2f, sleeping for %d seconds...\n",
+                difficulty, maxdiff, searchDuration);
+        MilliSleep(searchDuration * 1000);
+        return ret;
+    }
+
     printf("Mining: id: %x parent: %s bits: %x difficulty: %3.2f time: %d\n", (unsigned int)params["id"].get_int64(),
-        header.hashPrevBlock.ToString().c_str(), header.nBits, GetDifficulty(header.nBits), header.nTime);
+        header.hashPrevBlock.ToString().c_str(), header.nBits, difficulty, header.nTime);
 
     int64_t start = GetTime();
     while ((GetTime() < start + searchDuration) && !found)
