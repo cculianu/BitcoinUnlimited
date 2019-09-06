@@ -271,7 +271,7 @@ static UniValue CpuMineBlock(unsigned int searchDuration, const UniValue &params
     const double difficulty = GetDifficulty(header.nBits);
 
     if (maxdiff > 0.0 && difficulty > maxdiff) {
-        printf("Currenty difficulty: %3.2f > maxdifficulty: %3.2f, sleeping for %d seconds...\n",
+        printf("Current difficulty: %3.2f > maxdifficulty: %3.2f, sleeping for %d seconds...\n",
                 difficulty, maxdiff, searchDuration);
         MilliSleep(searchDuration * 1000);
         return ret;
